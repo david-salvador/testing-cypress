@@ -2,6 +2,205 @@
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 9.0.4.
 
+```
+npx @angular/cli new testing-cypress
+cd testing-cypress
+```
+
+## Setting up a ngrx project
+
+```
+// setting up ngrx: schematics, store, effects, router-store, entity and dev-tools
+npm install @ngrx/schematics --save-dev
+npm install @ngrx/store @ngrx/effects @ngrx/router-store @ngrx/entity --save
+npm install @ngrx/store-devtools --save-dev
+
+// wiring up basic
+node .\node_modules\@angular\cli\bin\ng g @ngrx/schematics:store State --root --module app
+node .\node_modules\@angular\cli\bin\ng g @ngrx/schematics:effect App --root --module app.module.ts
+```
+
+## Setting up Angular Material
+
+```
+ng add @angular/material
+```
+
+# Cypress 4.x
+
+[link > Cypress Best Practices](https://docs.cypress.io/guides/references/best-practices.html)
+
+> Targeting ui **DOM** elements by `tag`, `class` or `id` is very volatile and highly subject to change. You may swap out the element, you may refactor CSS and update ID’s, or you may add or remove classes that affect the style of the element.
+>
+> Instead, adding the `data-cy` attribute to the element gives us a targeted selector that’s only used for testing.
+>
+> The `data-cy` attribute will not change from CSS style or JS behavioral changes, meaning it’s not coupled to the behavior or styling of an element.
+
+```html
+<button
+  id="login__form__button__submit"
+  data-cy="login__form__button__submit"
+  [disabled]="!loginForm.valid"
+>
+  Login
+</button>
+```
+
+```typescript
+*.spec.ts
+
+cy.get('[data-cy=login__form__button__submit]').should('be.disabled');
+```
+
+## Setup
+
+```
+npm i cypress --save-dev
+```
+
+### IDE intellisense code completion
+
+To prevent erros.
+
+```
+npx cypress open
+
+To help you get started...
+We've added some folders and example tests to your project.
+Try running the tests in the examples folder or add your own
+test files to cypress/integration.
+
+```
+
+This creates `cypress.json`, and `/cypress` folder. Close the chromium window that just opened.
+
+1. Within `/cypress` folder create new file: `tsconfig.json`
+
+```
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "baseUrl": "../node_modules",
+    "types": ["cypress"]
+  },
+  "include": ["**/*.*"]
+}
+```
+
+### scripts
+
+1. spin up the ui app
+
+```
+"cy:open": "cypress open",
+```
+
+1. run tests in headless mode
+
+```
+"cy:run": "cypress run",
+```
+
+1. For visual regression testing.
+
+```
+"cy:": "cypress ",
+```
+
+1. For Cucumber BDD testing.
+
+```
+"cy:": "cypress ",
+```
+
+### fixtures subfolder
+
+External static data for our tests to feed from, to support desired scenarios.
+
+### integration subfolder
+
+Where all tests live, includes examples to quickstart and reference.
+
+### plugins subfolder
+
+Enable external 3rd-party extensions libraries, cucumber pre-processors, image snapshots library.
+
+### support subfolder
+
+#### index.js
+
+1. Convenience Mechanism, runs before every single .spec file. No need to import it in spec files.
+
+1. Central place for custom commands.!
+
+## Browser support
+
+Chrome, Firefox and MS Edge.
+
+## Main Differentiators
+
+1. smart automatic waiting on all selectors
+   before it makes an action on that so the tests are very stable and robust.
+   .. Less lines of code so you can develop your test much faster.
+   2.tests can be video recorded so test can be published for later reference.
+   3.real time reloads function: When code is changed the corresponding test will run automatically, no need to retrigger scripts.
+
+# Code
+
+## Mocha
+
+See tests in `cypress\integration\examples`
+
+### Cypress UI mode
+
+Run them with `npm run cy:open`
+
+### Headless mode
+
+`npm run cy:run`
+
+```typescript
+describe('browser-actions 01_02_01 ', () => {
+  it('price of poetry olio book is €23.88', () => {
+    cy.visit('http://books.toscrape.com/index.html', { timeout: 10000 });
+    cy.url().should('include', 'index.html');
+
+    cy.log(' *** website loaded!');
+
+    cy.get('a')
+      .contains('Poetry')
+      .click();
+
+    cy.get('.page-header.action>h1').contains('Poetry');
+
+    cy.get('.product_pod h3 a')
+      .contains('Olio')
+      .click();
+
+    cy.url().should('include', 'catalogue/olio');
+
+    cy.get('.product_page .product_main .price_color').contains('23.88');
+  });
+});
+```
+
+tables
+Markdown | Less | Pretty
+--- | --- | ---
+_Still_ | `renders` | **nicely**
+1 | 2 | 3
+
+---
+
+> Blockquotes are very handy in email to emulate reply text.
+> This line is part of the same quote.
+
+images
+Inline-style:
+![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 1')
+
+# Development section
+
 ## Development server
 
 Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
@@ -25,3 +224,34 @@ Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protrac
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+
+# Annex
+
+## Prettier
+
+To prevent conflicts in code reviews.
+
+### setup
+
+```
+npm i prettier --save-dev
+```
+
+### configuration file
+
+Linting rules that gover file format on save.
+.prettierrc
+
+example of personal preferences to be agreed with team members:
+
+```
+{
+  "semi": true,
+  "singleQuote": true,
+  "useTabs": true,
+  "tabWidth": 2,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "trailingComma": "es5" // trims when possible
+}
+```
