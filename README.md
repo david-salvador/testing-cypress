@@ -26,7 +26,104 @@ node .\node_modules\@angular\cli\bin\ng g @ngrx/schematics:effect App --root --m
 ng add @angular/material
 ```
 
-# Cypress 4.x
+# Unit Testing
+
+To catch regression errors(introduced by evolution) by:
+
+1. detecting broken code at object or function level
+1. clarifying code intent
+
+in small chunks. But not DOM User Interaction, which is more efficient in e2e.
+
+## with Jasmine(testing framework) + Karma(test runner)
+
+Most common causes of errors are:
+
+1. `import` or `export` statements missing.
+1. `providers` or `selectors` forgotten.
+1. imported class has no instance.
+1. async errors unhandled.
+1. Dependency Injection missespellings.
+
+Observables can be cryptic to diagnose, as Angular executes within zones: scoped execution contexts, chunks of code together even if asynchronous. One zone per stack. Child zones can reference parent's but not viceversa.
+
+Dependency Injection: Because angular emits errors on execution and not when importing/exporting files at compile time, traces may go back to undefined variables. Code editors help.
+
+Decorators are functions that return functions, adding metadata, helping with dependency injection, and are invoked at runtime with arguments. Common errors: missing parentheses, missing properties, values, adding a semicolon at then end of the decorator.
+
+### To Run the Development Backend Server
+
+We can start the sample application backend with the following command:
+
+    npm run server
+
+This is a small Node REST API server.
+
+### To run the Development UI Server
+
+To run the frontend part of our code, we will use the Angular CLI:
+
+    npm start
+
+The application is visible at port 4200: [http://localhost:4200](http://localhost:4200)
+
+## Key Elements
+
+### TestBed
+
+Configures our in-test app module, and to resolve all dependencies our component might need.
+
+```typescript
+describe('AppComponent', () => {
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [RouterTestingModule],
+      declarations: [AppComponent],
+    }).compileComponents();
+  }));
+  ...
+});
+```
+
+### ComponentFixture
+
+Gives privileged access to the component itself, and its state.
+
+### By
+
+Allows to search DOM elements by css class etc.
+
+```
+
+```
+
+### DebugElement
+
+Allows access to the components dom structure.
+
+# End-to-End, Integration Tests
+
+To catch ux and ui errors:
+
+1. at component and webpage level
+1. at the end-user experience level
+
+Example: to verify that clicking x button on X context, always leads to "y" app behaviours. What the users can, and can not, do in x conditions.
+
+## Protractor e2e
+
+run with
+`npx ng e2e`
+
+### element
+
+to interact with dom elements
+
+### by
+
+to select dom elements by css
+
+## Cypress 4.x e2e
 
 [link > Cypress Best Practices](https://docs.cypress.io/guides/references/best-practices.html)
 
@@ -87,7 +184,14 @@ This creates `cypress.json`, and `/cypress` folder. Close the chromium window th
 }
 ```
 
-### scripts
+# Managing tests
+
+## unit scripts
+
+To launch the angular test server, compile .ts code, and watch our files for changes.
+`npx ng test`
+
+## e2e scripts
 
 1. spin up the ui app
 

@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';
-import { NgModule } from '@angular/core';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { NgModule, ErrorHandler } from '@angular/core';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -15,13 +15,18 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { XyzUserListComponent } from './components/user-list/user-list.component';
+import { HttpClientModule } from '@angular/common/http';
+import { XyzErrorHandlerService } from './shared/error-handler.service';
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, XyzUserListComponent],
   imports: [
     BrowserModule,
+    FormsModule,
     ReactiveFormsModule,
     AppRoutingModule,
+    HttpClientModule,
     StoreModule.forRoot(reducers, {
       metaReducers,
       runtimeChecks: {
@@ -38,7 +43,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
     BrowserAnimationsModule,
   ],
-  providers: [],
+  providers: [{ provide: ErrorHandler, useClass: XyzErrorHandlerService }],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
