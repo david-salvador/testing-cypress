@@ -1,9 +1,9 @@
-import { TodoFormComponent } from './todo-form.component'; 
+import { TodoFormComponent } from './todo-form.component';
 
 import { FormBuilder, FormControl } from '@angular/forms';
 
 describe('0400 TodoFormComponent', () => {
-  var component: TodoFormComponent; 
+  var component: TodoFormComponent;
 
   beforeEach(() => {
     component = new TodoFormComponent(new FormBuilder());
@@ -16,13 +16,12 @@ describe('0400 TodoFormComponent', () => {
   });
 
   it('05 should make the name control required', () => {
-    let control:FormControl = component.form.get('name') as FormControl;
-    
-    control.setValue('');//at this point this control should be invalid
+    let control: FormControl = component.form.get('name') as FormControl;
+
+    control.setValue(''); // at this point this control should be invalid
 
     expect(control.valid).toBeFalsy();
   });
 
   //we could have more tests if we had more validators.
-
 });
