@@ -7,7 +7,7 @@ import { UserDetailsComponent } from './user-details.component';
 
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
-import { Subject } from 'rxjs'; //for feeding values into ActivatedRouteStup params observable :-)
+import { Subject } from 'rxjs'; // for feeding values into ActivatedRouteStup params observable :-)
 
 describe('Suite: Integration - UserDetailsComponent', () => {
   let component: UserDetailsComponent;
@@ -15,13 +15,12 @@ describe('Suite: Integration - UserDetailsComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ UserDetailsComponent ],
-      providers:[
-        { provide: Router, useClass:RouterStub },
-        { provide: ActivatedRoute, useClass:ActivatedRouteStub }
-      ]
-    })
-    .compileComponents();
+      declarations: [UserDetailsComponent],
+      providers: [
+        { provide: Router, useClass: RouterStub },
+        { provide: ActivatedRoute, useClass: ActivatedRouteStub },
+      ],
+    }).compileComponents();
   }));
 
   beforeEach(() => {
@@ -34,49 +33,45 @@ describe('Suite: Integration - UserDetailsComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  //save() {     this.router.navigate(['users']);  }
+  // save() {     this.router.navigate(['users']);  }
   it('TC 105 > should redirect to users page after saving', () => {
-    let router = TestBed.get(Router);
-    //navigate is already a fake method, so no need to call .and.callFake
-    //only check that it has been called
-    let spy = spyOn(router, 'navigate');
+    const router = TestBed.get(Router);
+    // navigate is already a fake method, so no need to call .and.callFake
+    // only check that it has been called
+    const spy = spyOn(router, 'navigate');
 
     component.save();
 
     expect(spy).toHaveBeenCalledWith(['users']);
-
   });
 
-  //ensure we have a route configured for this path 'users'
+  // ensure we have a route configured for this path 'users'
   it('TC 110 > should redirect to not-found page if invalid user id', () => {
-    let router = TestBed.get(Router);
-    let spy = spyOn(router,'navigate');
+    const router = TestBed.get(Router);
+    const spy = spyOn(router, 'navigate');
 
-    let route:ActivatedRouteStub = TestBed.get(ActivatedRoute);
-    route.push({id:0}); //invalid value
+    const route: ActivatedRouteStub = TestBed.get(ActivatedRoute);
+    route.push({ id: 0 }); // invalid value
 
     expect(spy).toHaveBeenCalledWith(['not-found']);
   });
-
-
 });
 
-
-
-
-class RouterStub { //fummy implementation, only need methods on component under test
-  navigate(params){}
+class RouterStub {
+  // fummy implementation, only need methods on component under test
+  navigate(params) {}
 }
 
-class ActivatedRouteStub{
+class ActivatedRouteStub {
   private subject = new Subject();
 
-  push(value){
+  push(value) {
     this.subject.next(value);
   }
- 
-  //params:Observable<any> = Observable.empty(); //not good for TC 110
-  get params(){ //looks like a method but it is a public property
-    return this.subject.asObservable();//we expose the subject as an observable to the outer world
+
+  // params:Observable<any> = Observable.empty(); //not good for TC 110
+  get params() {
+    // looks like a method but it is a public property
+    return this.subject.asObservable(); // we expose the subject as an observable to the outer world
   }
 }
