@@ -5,7 +5,7 @@ import {delay} from 'rxjs/operators';
 
 describe('Async Testing Examples', () => {
 
-    it('Asynchronous test example with Jasmine done()', (done: DoneFn) => {
+    it('01 Asynchronous test example with Jasmine done()', (done: DoneFn) => {
 
         let test = false;
 
@@ -24,7 +24,7 @@ describe('Async Testing Examples', () => {
     });
 
 
-    it('Asynchronous test example - setTimeout()', fakeAsync(() => {
+    it('02 Asynchronous test example - setTimeout()', fakeAsync(() => {
 
         let test = false;
 
@@ -46,7 +46,7 @@ describe('Async Testing Examples', () => {
     }));
 
 
-    it('Asynchronous test example - plain Promise', fakeAsync(() => {
+    it('03p Asynchronous test example - plain Promise', fakeAsync(() => {
 
         let test = false;
 
@@ -75,7 +75,7 @@ describe('Async Testing Examples', () => {
     }));
 
 
-    it('Asynchronous test example - Promises + setTimeout()', fakeAsync(() => {
+    it('04p+t Asynchronous test example - Promises + setTimeout()', fakeAsync(() => {
 
         let counter = 0;
 
@@ -108,7 +108,7 @@ describe('Async Testing Examples', () => {
 
     }));
 
-    it('Asynchronous test example - Observables', fakeAsync(() => {
+    it('05o Asynchronous test example - Observables', fakeAsync(() => {
 
         let test = false;
 
