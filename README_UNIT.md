@@ -137,7 +137,10 @@ Utilities to handle async op's in `components` and `services`?
 ### 28. fakeAsync 
 fakeSync: testing zone; allows simulating passing of time :-)
 
-1. it will autodetect all async operations have __COMPLETED__ b4 considering the test __COMPLETED__.
+1. it will autodetect all async operations have __COMPLETED__ b4 considering the test __COMPLETED__. 
+
+Detects activation|pressence of: `setTimeout`, `setInterval`, `requestAnimationFrame`, browser async APIs, browser async events (animations) `DOM`, and __others__, __`Promises`__, __`Observables`__.
+
 1. when __COMPLETED__ will then update the __DOM view__ to reflect the completed-updated data.
 
 > __notion__ of detecting async operations (setTimeout, setInterval,...) to enable us to act after those complete, in angular context is __'zones'__: a context that survives multiple asynchronous operations. Implemented by `zone.js` library of `angular`. Used in change-detection mechanism. See [zone.js in github](github.com/angular/zone.js).
@@ -147,7 +150,8 @@ So to run our tests in a zone that will:
 1. wait for __all__ their completion __before__ considering spec __completed__.
 1. is more flexible than jasmine's `done()`.
 
-__tick__: Within the __fakeAsync zone__ passing of time is via `tick(timeInMs)` API (angular core testing).
+#### __tick(n)__: 
+Within the __fakeAsync zone__ passing of time is via `tick(timeInMs)` API (angular core testing).
 
 ```typescript
 it('02 Asynchronous test example - setTimeout() + tick()', fakeAsync(() => {
@@ -167,8 +171,8 @@ it('02 Asynchronous test example - setTimeout() + tick()', fakeAsync(() => {
 
 __Main Benefit__ `:-)`: And so, we do not need to run asserts within nested code blocks, but code tests in a synchronous looking way.
 
-
-
+#### __flush()__ 
+flush() empties the task queue, without need to define the period in ms the clock forward; it will finish __ALL__ timeout|async s.
 
 ```typescript
 it('02 Asynchronous test example - setTimeout()', fakeAsync(() => {
@@ -191,38 +195,76 @@ it('02 Asynchronous test example - setTimeout()', fakeAsync(() => {
 [async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts)
 
 
+### 29 Testing `Promise` based code
+> alert!: Notice the order of execution by the js runtime, of micro-tasks and (macro-tasks)tasks. There are 2 tasks queues for async tasks:
+
+micro-tasks | (macro-tasks)tasks
+--- | --- 
+`promise`s | `setTimeout`
+-| `setInterval`
+-| ajax calls
+-| mouse clicks
+-| other browser operations...
+--- | ---
+ added to separate queue | will get added in block to the event loop
+ between these, the browser does **not** get to update the view| between them, screens renders
+
+> `Promise.resolve().then(...)` creates an inmediately resolved promise, takes priority|precedence over `setTimeout` (goes into micro-tasks queue)
+
 ```typescript
 it('Asynchronous test example - plain Promise', fakeAsync(() => {
-
     let test = false;
-
     console.log('Creating promise');
-
     Promise.resolve().then(() => {
-
-        console.log('Promise first then() evaluated successfully');
-
+        console.log('Promise first then() evaluated ok');
         return Promise.resolve();
     })
     .then(() => {
-
-        console.log('Promise second then() evaluated successfully');
-
+        console.log('Promise second then() evaluated ok');
         test = true;
-
     });
-
-    flushMicrotasks();
-
+    flushMicrotasks(); // <-- after this, u-tasks have been processed.
     console.log('Running test assertions');
-
     expect(test).toBeTruthy();
-
 }));
 ```
 [async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts)
 
+### 30 flushMicrotasks()
+### 31 when to call flushMicrotasks()
+### 32 fakeAsync Observables
+```typescript
+ _______
+O_______) = = O
+```
+Angular test uitilities to test async Observables. 
+1. controls passing of time
+1. flushing of uTasks & tasks queues
 
+### 34 `beforeEach(async ( ...`  _(vs fakeAsync)_
+
+__async__: wraps the code block in a test zone.
+What differences `fakeAsync` and `async`?
+
+__conclusion__: `async` is not as convenient
+
+When to use async then?  
+
+utilities | fakeAsync | async
+--- | --- | --- 
+detecting __all__ async operations made inside the wrapped block. example: `compileComponents().then() | yes | yes
+fine control over the `flush()` emptying of micro-tasks, and tasks(macro-tasks), __queues__ | yes | no
+can call `tick()` to control passage of time | yes | no
+suports mocking actual HTTP requests to Backend => __not unit-tests__ but __integration__ tests. | no | yes
+
+__Conclusion__ :
+Use `async` in the `beforeEach`, in the compiling of modules.
+
+* json loading, mocking HTTP requests
+* when a __unit-test__ nneds to mock a HTTP req to BEnd. It, `async`,
+* when css/html is not bundled by the CLI | |
+
+Use `fakeAsync` in all other cases.
 
 
 # markdown references
