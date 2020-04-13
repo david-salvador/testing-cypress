@@ -75,7 +75,7 @@ Allows access to the components dom structure.
 
 
 ## Asynchronous Unit Testing (with Jasmine)
-
+---
 ### 26. done()
 
 > **Problem**: after `click()`, wiven with `fixture.detectChanges()` *(see 25)* ... changes are not reflected in DOM, and so __asserts fail__. 
@@ -125,15 +125,15 @@ it('_01 Asynchronous test example with Jasmine done()', (done: DoneFn) => {
 >The mere pressence of an argument indicates fasmine that this is an __async__ test; so ti will not consider itself __ended__ after running the __sync__. The gamma section, needs to call the done() method before the default 5s timeout!.
 
 > __Problem__: setTimeout is not so maintainable
-
+---
 ### 27. Async Utilitities: because setTimeout is not so maintainable.
-
+As `async` operations make it hard to know when the test is going to be completed.
 
 Utilities to handle async op's in `components` and `services`?
 > [async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts) : a test suite not linked to any angular implementation, for reference.
 
 > see 4-(26, 27)
-
+---
 ### 28. fakeAsync 
 fakeSync: testing zone; allows simulating passing of time :-)
 
@@ -194,68 +194,322 @@ it('02 Asynchronous test example - setTimeout()', fakeAsync(() => {
 ```
 [async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts)
 
-
+---
 ### 29 Testing `Promise` based code
+
+Promises are more lightweight for the browser to handle async operations _(than setTimeout, ...)_, as they run in the separate micro-tasks queue, rather than the macro-tasks event loop queue.
+
 > alert!: Notice the order of execution by the js runtime, of micro-tasks and (macro-tasks)tasks. There are 2 tasks queues for async tasks:
 
-micro-tasks | (macro-tasks)tasks
+micro-tasks queue | (macro-tasks)tasks queue
 --- | --- 
 `promise`s | `setTimeout`
--| `setInterval`
--| ajax calls
--| mouse clicks
--| other browser operations...
+- | `setInterval`
+- | ajax calls
+- | mouse clicks
+- | other browser operations...
 --- | ---
- added to separate queue | will get added in block to the event loop
- between these, the browser does **not** get to update the view| between them, screens renders
+ added to their own separate uTasks queue | added to the event loop
+ between each, the browser does **not** get to update the view DOM| between each one, the browser rendering engine gets a chance to update the DOM
 
 > `Promise.resolve().then(...)` creates an inmediately resolved promise, takes priority|precedence over `setTimeout` (goes into micro-tasks queue)
 
 ```typescript
-it('Asynchronous test example - plain Promise', fakeAsync(() => {
+it('Asynchronous test example - plain Promise', () => {
+// it('Asynchronous test example - plain Promise', fakeAsync(() => {
     let test = false;
+
     console.log('Creating promise');
-    Promise.resolve().then(() => {
+
+    setTimeout(()=> { // karma adds this to the tasksQ
+        console.log('setTimeout() first callback triggered');
+    })
+    setTimeout(()=> { // k adds this to the taskQ
+        console.log('setTimeout() 2nd callback triggered');
+    })
+
+    Promise.resolve().then(() => { // k adds this to the uTaskQ
         console.log('Promise first then() evaluated ok');
-        return Promise.resolve();
+        return Promise.resolve(); // this adds a new promise to the uTasksQ
     })
     .then(() => {
         console.log('Promise second then() evaluated ok');
-        test = true;
+        test = true; // flag set here for test assertion
     });
-    flushMicrotasks(); // <-- after this, u-tasks have been processed.
+    // flushMicrotasks(); // <-- after this, uTasks have been processed, emptied
+
+    console.log('Running test assertions');
+    expect(test).toBeTruthy();
+}));
+```
+[async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts)
+```c
+FAILS!!
+
+Creating promise
+Promise first then() evaluated ok
+Promise second then() evaluated ok
+Running test assertions
+setTimeout() first callback triggered
+setTimeout() 2nd callback triggered
+
+```
+Emptying the uTasksQ resolves all promises scheduled.
+
+___
+
+### 30 Using fakeAsync to work with Promises & flushMicrotasks()
+
+Previous test failed, test must resolve the async operations before considering test complete. Now with fakeAsync() we will run the test in fakeAsync zone.
+
+To execute all the uTasks in the uTasksQ, before running the assertions. To flush only the uTasks (_without needing to advance time or flush the tasksQ_): the `flushMicrotasks()` test utility:
+
+```typescript
+it('Asynchronous test example - plain Promise', fakeAsync(() => {
+    let test = false;
+
+    console.log('Creating promise');
+    Promise.resolve().then(() => { // k adds this to the uTaskQ
+        console.log('Promise first then() evaluated ok');
+        return Promise.resolve(); // this adds a new promise to the uTasksQ
+    })
+    .then(() => {
+        console.log('Promise second then() evaluated ok');
+        test = true; // flag set here for test assertion
+    });
+    flushMicrotasks(); // <-- after this, uTasks have been processed, emptied
+
     console.log('Running test assertions');
     expect(test).toBeTruthy();
 }));
 ```
 [async-examples.spec.ts](./src/app/components/courses/home/async-examples.spec.ts)
 
-### 30 flushMicrotasks()
-### 31 when to call flushMicrotasks()
-### 32 fakeAsync Observables
+Now the test passes, both promises in the promise chain have been evaluated. Notice how the flag is set in the 2nd promise in the promise chain. Even if another promise got triggerd, it will be resolved, until the uTaskQ is emptied completely, before continuing, in a synchronous-looking way.
+___
+### 31 Full-Example
+- How to test code that uses both asynchronous operations task queues.
+- When, and Why, to call the multiple utilities available : `flushMicrotasks()`, `tick()`, `flush()`, etc.
+
+__Example__ Promise, when resolved calls timeout which updates `count`, and then run assertions after all these async op's have executed.
+
+```typescript
+it('04p+t Asynchronous test example - Promises+setTimeout()', fakeAsync(() => {
+    let counter = 0;
+
+    Promise.resolve()
+        .then(() => {
+            counter+=10;
+            setTimeout(() => {
+                counter += 1;
+            }, 1000);
+        });
+
+    expect(counter).toBe(0);
+    
+    flushMicrotasks();
+
+    expect(counter).toBe(10);
+    tick(500); // allows to progressivey triggering timeouts
+    expect(counter).toBe(10);
+    // tick(499);
+    // expect(counter).toBe(10);
+    // tick(1);
+    tick(500); // now a whole second have 
+    expect(counter).toBe(11);
+}));
+```
+
+- How to trigger the `Promise`, but not the `setTimeout`. 
+- Between two uTasks the browser does not have the chance to updating the DOM.
+
+---
+### 32 fakeAsync to test Async Observable based code
 ```typescript
  _______
 O_______) = = O
 ```
+
 Angular test uitilities to test async Observables. 
 1. controls passing of time
 1. flushing of uTasks & tasks queues
 
+```typescript
+it('05o Asynchronous test example - Observables', fakeAsync(() => {
+
+  let test = false; // the assertable flag of interest
+
+  console.log('Creating Observable');
+
+  const test1$ = of('whatever');
+
+  test1$.subscribe(() => { // this is sinchronously executed
+    test = true;
+  });
+
+  console.log('Running test assertions 1');
+  expect(test).toBe(true);
+
+  test = false;
+
+  const test2$ = of('something').pipe(
+    delay(1000) // internally calls setTimeout, and so delays the emision of 'something' by one second
+  );
+
+  test2$.subscribe(() => { // now it takes one second to receive value
+    test = true;
+  });
+
+  tick(1000); // and so we need move the time fwd 1s
+
+  console.log('Running test assertions 2');
+
+  expect(test).toBe(true);
+
+}));
+```
+
+So, it is similar to testing async operations that use setTimeout.
+___
+### 33. fakeAsync in Practice - Fixing the HomeComponent tests
+
+- [app/components/courses/home.c.ts](./src/app/components/courses/home/home.component.ts)
+- [app/components/courses/home.c.spec.ts](./src/app/components/courses/home/home.component.spec.ts)
+
+Utilities allow code to be writen in a synchronous looking way.
+
+Whenever the advanced tab button is clicked:
+1. the advanced courses are displayed instead of the beginners courses.
+1. the beginners courses are not displayed
+
+
+```typescript
+describe('HomeComponent', () => {
+
+    let fixture: ComponentFixture<HomeComponent>;
+    let component: HomeComponent;
+    let el: DebugElement;
+    let coursesService: any;
+
+    const beginnerCourses = setupCourses()
+        .filter(course => course.category == 'BEGINNER');
+
+    const advancedCourses = setupCourses()
+        .filter(course => course.category == 'ADVANCED');
+
+    // async wraps in a test zone, and only considers the test completed
+    // when all triggered tasks in both queues are emptied
+    beforeEach(async(() => {
+
+        // create a mock object that will return test data
+        const coursesServiceSpy = jasmine.createSpyObj('CoursesService', ['findAllCourses'])
+
+        TestBed.configureTestingModule({
+            imports: [
+                CoursesModule,
+                NoopAnimationsModule
+            ],
+            providers: [
+                { provide: CoursesService, useValue: coursesServiceSpy }
+            ]
+        }).compileComponents() // this is asynchronous
+            .then(() => {
+                fixture = TestBed.createComponent(HomeComponent);
+                component = fixture.componentInstance;
+                el = fixture.debugElement;
+                coursesService = TestBed.get(CoursesService);
+            });
+    }));
+
+     it("should display advanced courses when tab clicked - fakeAsync", fakeAsync(() => {
+
+        // using the spied mocked version of coursesService to mock a response test data.
+        coursesService.findAllCourses.and.returnValue(of(setupCourses()));
+
+        // apply the changes on the DOM with the list of courses
+        fixture.detectChanges(); // apply change-detection functionality
+
+        // we would expect to have two tabs, with Beginners tab active
+        // we query the dom for the list of tab buttons, [].
+        const tabs = el.queryAll(By.css(".mat-tab-label"));
+
+        // simulate click on the 2nd tab of the arry, "advanced"
+        click(tabs[1]);
+
+        // run changeDetection mechanism
+        fixture.detectChanges();
+
+        // requestAnimationFrame async API prevents synchronous readable code, which is solved by setting a fakeAsync zone, and by emptying the 2 types of task queues with `flush`:
+        flush(); // because timer from reqAnimFrame is not uTask
+        // could have used tick(16) but it would require inner knowledge
+
+        const cardTitles = el.queryAll(By.css('.mat-card-title'));
+
+        expect(cardTitles.length).toBeGreaterThan(0, "Could not find card titles");
+
+        expect(cardTitles[0].nativeElement.textContent).toContain("Angular Security Course");
+    }));
+
+});
+
+```
+
+___
 ### 34 `beforeEach(async ( ...`  _(vs fakeAsync)_
+
+flush() does not work in async test zone... 
+- no control on the emptying of the queues; 
+- nor allowed tick(n) to control time.
+- we can not write assertons in a sync looking way :-(
+
+yet the zone will track all async ops, and will give callback,
+we can then run test assertions => test fixture.whenStable
+
+```typescript
+...
+    // alternative way using async
+    it("should display advanced courses when tab clicked - async", async(() => {
+        coursesService.findAllCourses.and.returnValue(of(setupCourses()));
+        fixture.detectChanges();
+        const tabs = el.queryAll(By.css(".mat-tab-label"));
+        
+        click(tabs[1]);
+        fixture.detectChanges();
+
+        // flush() does not work in async test zone... no control on the
+        // emptying of the queues; nor allowed tick(n) to control time.
+        // we can not write assertons in a sync looking way :-(
+        // yet the zone will track all async ops, and will give callback,
+        // we can then run test assertions => test fixture.whenStable
+        fixture.whenStable().then(() => {
+
+            console.log("called whenStable() ");
+
+            const cardTitles = el.queryAll(By.css('.mat-card-title'));
+
+            expect(cardTitles.length).toBeGreaterThan(0, "Could not find card titles");
+
+            expect(cardTitles[0].nativeElement.textContent).toContain("Angular Security Course");
+
+        });
+
+    }));
+...
+```
 
 __async__: wraps the code block in a test zone.
 What differences `fakeAsync` and `async`?
 
-__conclusion__: `async` is not as convenient
+__conclusion__: `async` is not as convenient as `fakeAsync`
 
-When to use async then?  
+When to use async then? Why does it exist?
 
 utilities | fakeAsync | async
 --- | --- | --- 
 detecting __all__ async operations made inside the wrapped block. example: `compileComponents().then() | yes | yes
 fine control over the `flush()` emptying of micro-tasks, and tasks(macro-tasks), __queues__ | yes | no
 can call `tick()` to control passage of time | yes | no
-suports mocking actual HTTP requests to Backend => __not unit-tests__ but __integration__ tests. | no | yes
+suports mocking __actual HTTP requests to Backend__ => __not unit-tests__ but __integration__ tests. | no | yes
 
 __Conclusion__ :
 Use `async` in the `beforeEach`, in the compiling of modules.
@@ -266,18 +520,4 @@ Use `async` in the `beforeEach`, in the compiling of modules.
 
 Use `fakeAsync` in all other cases.
 
-
-# markdown references
-tables
-Markdown | Less | Pretty
---- | --- | ---
-_Still_ | `renders` | **nicely**
-1 | 2 | 3
-
----
-
-
-
-images
-Inline-style:
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 1')
+[back to README](./README.md)
